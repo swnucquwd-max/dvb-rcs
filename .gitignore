@@ -1,0 +1,17 @@
+# MATLAB autosave / build artifacts
+*.asv
+*.autosave
+*.mat
+slprj/
+*.slxc
+*.mex*
+codegen/
+# OS / editor
+Thumbs.db
+desktop.ini
+.DS_Store
+~$*
+*~
+# temp / logs
+*.tmp
+*.log
