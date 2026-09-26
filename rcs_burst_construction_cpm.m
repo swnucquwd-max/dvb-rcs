@@ -25,7 +25,7 @@ else
     data2_bits = [];
 end
 
-segments = [uw_bits; data1_bits; uw_bits; data2_bits];
+segments = {uw_bits, data1_bits, uw_bits, data2_bits};
 
 burst_info.n_preamble_bits = length(uw_bits);
 burst_info.n_data1 = n_data1;

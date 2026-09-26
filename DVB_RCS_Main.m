@@ -8,10 +8,6 @@ clear;clc;close all;
 burst_type = 'TRF';
 %编码方案 'concatenated'(CC-CPM)，'turbo'
 coding_scheme = 'concatenated';
-%码率（根据编码方案选择）
-%'concatenated'：(CC-CPM)
-% 'turbo':(TC-LM)
-code_rate = '1/2';
 %滚降因子（0.2,0.25,0.35）
 rolloff = 0.2;
 %过采样率（每个符号采样点数）
@@ -26,10 +22,10 @@ fc = 14e5; %1.4M波段
 fs = sps * 2e6;%基于2MHZ符号率
 
 %输入数据长度（bit）
-input_len = 389;
+input_len = 390;
 waveform_cfg.waveform_id = 1;
-%获取DVB-RCSA参数
-params = get_rcs_params(burst_type,code_rate,coding_scheme,mod_order,waveform_cfg);
+%获取DVB-RCS参数
+params = get_rcs_params(burst_type,coding_scheme,waveform_cfg);
 %生成测试输入数据
 rng(42);%固定种子保证结果可重复性
 input_data = randi([0,1],input_len,1);
@@ -51,26 +47,47 @@ coded_data = rcs_channel_coding(data_with_crc,params);
 %比特交织
 if strcmp(params.mod_type,'cpm')
     interleaved_data = rcs_bit_interleaving(coded_data,params);
-    [segments, burst_info] = rcs_burst_construction_cpm(interleaved_data, params);
 else
     interleaved_data = coded_data;%turbo编码不交织
 end
-
-
 %调制
 if strcmp(params.mod_type,'cpm')
-    [symbols, cpm_info] = rcs_cpm_modulation(segments, params, 1);
+    [segments, burst_info] = rcs_burst_construction_cpm(interleaved_data, params);
+    % 7.3.6.2 UW前导码|数据1|尾符号|UW（中导码）|数据2|尾符号
+    %分段调制
+    %前导码 相位从0开始
+    %数据1  尾符号趋回0相位
+    %中导码 相位从0开始
+    %数据2  尾符号趋回0相位
+    symbols_all = [];
+    total_term = 0;
+    total_data_syms = 0;
+    cpm_info = struct;
+
+    for seg_idx = 1:length(segments)
+        bits = cell2mat(segments(seg_idx));
+        %数据部分追加尾符号
+        is_data = (seg_idx == 2||seg_idx == 4);
+        [seg_sym, seg_info] = rcs_cpm_modulation(bits, params, is_data);
+        symbols_all = [symbols_all; seg_sym];
+        total_data_syms = total_data_syms + seg_info.n_symbols;
+        if is_data
+            total_term = total_term + seg_info.n_term;
+        end
+
+        if seg_idx == 1
+            cpm_info = seg_info;
+        end
+    end
+    symbols = symbols_all;
+    burst_signal = symbols;
 else
     symbols = rcs_modulation(interleaved_data, params);
-end
-
-
-%突发构造
-if strcmp(params.mod_type,'linear')
     [burst_signal,burst_info] = rcs_burst_construction(symbols,params);
-else
-    burst_signal = symbols;
 end
+
+
+
 %基带成型
 I_data = real(burst_signal);
 Q_data = imag(burst_signal);
