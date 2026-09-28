@@ -1,5 +1,5 @@
 function a1_symbol_len()
-%A1_SYMBOL_LEN 核算表 A-1 的突发符号长度构成（以 waveform_id=1 为例，并逐行验证规律）
+%A1_SYMBOL_LEN 核算表 A-1 的突发符号长度构成（以 waveform_id=1 为例，并逐行验证规律）  1111111
 addpath('D:\于敏\DVB-RCS');
 T = rcs_waveform_table('A1');
 fprintf('id  pre post per blk psum  payload  burst   pre+post+psum*blk+payload  floor(pay/(per-blk))\n');
